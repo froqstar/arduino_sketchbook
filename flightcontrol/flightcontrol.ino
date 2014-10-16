@@ -9,6 +9,7 @@
 #include <RF24.h>
 #include <nRF24L01.h>
 #include <RF24_config.h>
+#include <Servo.h> 
 
 
 
@@ -17,6 +18,7 @@
 
 MPU6050 mpu;
 RF24 radio(7,8);
+Servo front_left, front_right, rear_left, rear_right;
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 
@@ -26,6 +28,8 @@ RF24 radio(7,8);
 #define MOTOR_REAR_RIGHT_CCW 10
 
 #define THRUST_STEADY 100
+#define THRUST_MIN 10
+#define THRUST_MAX 175
 
 bool blinkState = false;
 volatile bool printed = false;
@@ -62,11 +66,11 @@ byte control[4];        // [yaw, pitch, roll, height]  desired yaw/pitch/roll/he
 // ================================================================
 
 void setup() {
-    //setup pins
-    pinMode(MOTOR_FRONT_LEFT_CCW, OUTPUT);
-    pinMode(MOTOR_FRONT_RIGHT_CW, OUTPUT);
-    pinMode(MOTOR_REAR_LEFT_CW, OUTPUT);
-    pinMode(MOTOR_REAR_RIGHT_CCW, OUTPUT);
+    //setup servos
+    front_left.attach(MOTOR_FRONT_LEFT_CCW);
+    front_right.attach(MOTOR_FRONT_RIGHT_CW);
+    rear_left.attach(MOTOR_REAR_LEFT_CW);
+    rear_right.attach(MOTOR_REAR_RIGHT_CCW);
     
     // configure LED for output
     pinMode(LED_PIN, OUTPUT);
@@ -102,6 +106,13 @@ void setup() {
     radio.openReadingPipe(1,0xF0F0F0F0D2LL);
     radio.startListening();
     attachInterrupt(1, check_radio, FALLING);
+    
+    //arm ESCs
+    front_left.write(THRUST_MIN);
+    front_right.write(THRUST_MIN);
+    rear_left.write(THRUST_MIN);
+    rear_right.write(THRUST_MIN);
+    delay(5000);
 }
 
 
@@ -133,11 +144,10 @@ void loop() {
     int level_rr_ccw = factor_height - factor_yaw + factor_pitch - factor_roll;
     
     //write values to the motors
-    analogWrite(MOTOR_FRONT_LEFT_CCW, level_fl_ccw);
-    analogWrite(MOTOR_FRONT_RIGHT_CW, level_fr_cw);
-    analogWrite(MOTOR_REAR_LEFT_CW, level_rl_cw);
-    analogWrite(MOTOR_REAR_RIGHT_CCW, level_rr_ccw);
-
+    front_left.write(constrain(level_fl_ccw, THRUST_MIN, THRUST_MAX));
+    front_right.write(constrain(level_fr_cw, THRUST_MIN, THRUST_MAX));
+    rear_left.write(constrain(level_rl_cw, THRUST_MIN, THRUST_MAX));
+    rear_right.write(constrain(level_rr_ccw, THRUST_MIN, THRUST_MAX));
 
     // get INT_STATUS byte
     mpuIntStatus = mpu.getIntStatus();
