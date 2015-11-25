@@ -45,7 +45,7 @@ Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float gyro[3];          // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-float state[4];      // [yaw, pitch, roll, height]  current yaw/pitch/roll/height
+float state[4];      // [yaw, roll, pitch, height]  current yaw/roll/pitch/height (roll and pitch are swapped because of sensor orientation)
 byte control[4];        // [yaw, pitch, roll, height]  desired yaw/pitch/roll/height
 
 
@@ -131,8 +131,8 @@ void loop() {
     //calculate factors
     int factor_height = THRUST_STEADY + control[3];
     int factor_yaw = control[0];
-    int factor_pitch = control[1] - state[1];
-    int factor_roll = control[2] - state[2];
+    int factor_pitch = control[1] - state[2]; //switched because of sensor orientation
+    int factor_roll = control[2] - state[1];
     
     //calculate motor levels
     int level_fl_ccw = factor_height - factor_yaw - factor_pitch + factor_roll;
@@ -173,14 +173,14 @@ void loop() {
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(gyro, &q, &gravity);
-        if (printed) {
+        //if (printed) {
           Serial.print("ypr\t");
           Serial.print(gyro[0] * 180/M_PI);
           Serial.print("\t");
           Serial.print(gyro[1] * 180/M_PI);
           Serial.print("\t");
           Serial.println(gyro[2] * 180/M_PI);
-        }
+        //}
 
         //update current state
         state[0] = gyro[0] * 180/M_PI;
@@ -191,7 +191,8 @@ void loop() {
         blinkState = !blinkState;
         digitalWrite(LED_PIN, blinkState);
     }
-    
+
+    /*
     if (!printed) {
       Serial.print(control[0]);
       Serial.print("\t");
@@ -202,6 +203,7 @@ void loop() {
       Serial.println(control[3]);
       printed = true;  
     }
+    */
 }
 
 void check_radio(void) {
