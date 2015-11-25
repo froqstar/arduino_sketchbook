@@ -135,10 +135,10 @@ void loop() {
     int factor_roll = control[2] - state[2];
     
     //calculate motor levels
-    int level_fl_ccw = min(max(factor_height - factor_yaw - factor_pitch + factor_roll, THRUST_MIN), THRUST_MAX);
-    int level_fr_cw  = min(max(factor_height + factor_yaw - factor_pitch - factor_roll, THRUST_MIN), THRUST_MAX);
-    int level_rl_cw  = min(max(factor_height + factor_yaw + factor_pitch + factor_roll, THRUST_MIN), THRUST_MAX);
-    int level_rr_ccw = min(max(factor_height - factor_yaw + factor_pitch - factor_roll, THRUST_MIN), THRUST_MAX);
+    int level_fl_ccw = factor_height - factor_yaw - factor_pitch + factor_roll;
+    int level_fr_cw  = factor_height + factor_yaw - factor_pitch - factor_roll;
+    int level_rl_cw  = factor_height + factor_yaw + factor_pitch + factor_roll;
+    int level_rr_ccw = factor_height - factor_yaw + factor_pitch - factor_roll;
     
     //write values to the motors
     front_left.write(constrain(level_fl_ccw, THRUST_MIN, THRUST_MAX));
