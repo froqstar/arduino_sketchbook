@@ -29,7 +29,9 @@ volatile bool printed = false;
 
 byte control[4]; 
 
-int level = 0; //10 to 175 are presumably good values
+int level = 0; //10 to 160 are presumably good values
+#define THRUST_MIN = 10;
+#define THRUST_MAX = 160;
 
 
 // ================================================================
@@ -57,6 +59,13 @@ void setup() {
     attachInterrupt(1, check_radio, FALLING);
 }
 
+void writeLevel(int level) {
+    front_left.write(level);
+    front_right.write(level);
+    rear_left.write(level);
+    rear_right.write(level);
+}
+
 
 
 // ================================================================
@@ -75,7 +84,8 @@ void loop() {
     front_right.write(level);
     rear_left.write(level);
     rear_right.write(level);
-
+    Serial.println(level);
+/*
     if (!printed) {
       Serial.println(level);
       Serial.print(control[0]);
@@ -87,6 +97,7 @@ void loop() {
       Serial.println(control[3]);
       printed = true;  
     }
+    */
 }
 
 void check_radio(void) {

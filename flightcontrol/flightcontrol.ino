@@ -9,16 +9,10 @@
 #include <RF24.h>
 #include <nRF24L01.h>
 #include <RF24_config.h>
+
+
 #include <Servo.h> 
 
-
-
-
-
-
-MPU6050 mpu;
-RF24 radio(7,8);
-Servo front_left, front_right, rear_left, rear_right;
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 
@@ -29,7 +23,11 @@ Servo front_left, front_right, rear_left, rear_right;
 
 #define THRUST_STEADY 100
 #define THRUST_MIN 10
-#define THRUST_MAX 175
+#define THRUST_MAX 160
+
+MPU6050 mpu;
+RF24 radio(7,8);
+Servo front_left, front_right, rear_left, rear_right;
 
 bool blinkState = false;
 volatile bool printed = false;
@@ -103,7 +101,7 @@ void setup() {
 
     //setup radio
     radio.begin();
-    radio.openReadingPipe(1,0xF0F0F0F0D2LL);
+    radio.openReadingPipe(1, 0xF0F0F0F0D2LL);
     radio.startListening();
     attachInterrupt(1, check_radio, FALLING);
     
@@ -129,7 +127,6 @@ void loop() {
     //regulate here
     //TODO: convert angles to degrees!
     //TODO: calibrate gyro/substract offsets
-    //TODO: avoid over/underflow
     
     //calculate factors
     int factor_height = THRUST_STEADY + control[3];
@@ -138,10 +135,10 @@ void loop() {
     int factor_roll = control[2] - state[2];
     
     //calculate motor levels
-    int level_fl_ccw = factor_height - factor_yaw - factor_pitch + factor_roll;
-    int level_fr_cw  = factor_height + factor_yaw - factor_pitch - factor_roll;
-    int level_rl_cw  = factor_height + factor_yaw + factor_pitch + factor_roll;
-    int level_rr_ccw = factor_height - factor_yaw + factor_pitch - factor_roll;
+    int level_fl_ccw = min(max(factor_height - factor_yaw - factor_pitch + factor_roll, THRUST_MIN), THRUST_MAX);
+    int level_fr_cw  = min(max(factor_height + factor_yaw - factor_pitch - factor_roll, THRUST_MIN), THRUST_MAX);
+    int level_rl_cw  = min(max(factor_height + factor_yaw + factor_pitch + factor_roll, THRUST_MIN), THRUST_MAX);
+    int level_rr_ccw = min(max(factor_height - factor_yaw + factor_pitch - factor_roll, THRUST_MIN), THRUST_MAX);
     
     //write values to the motors
     front_left.write(constrain(level_fl_ccw, THRUST_MIN, THRUST_MAX));
@@ -176,12 +173,14 @@ void loop() {
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(gyro, &q, &gravity);
-        Serial.print("ypr\t");
-        Serial.print(gyro[0] * 180/M_PI);
-        Serial.print("\t");
-        Serial.print(gyro[1] * 180/M_PI);
-        Serial.print("\t");
-        Serial.println(gyro[2] * 180/M_PI);
+        if (printed) {
+          Serial.print("ypr\t");
+          Serial.print(gyro[0] * 180/M_PI);
+          Serial.print("\t");
+          Serial.print(gyro[1] * 180/M_PI);
+          Serial.print("\t");
+          Serial.println(gyro[2] * 180/M_PI);
+        }
 
         //update current state
         state[0] = gyro[0] * 180/M_PI;
@@ -193,7 +192,6 @@ void loop() {
         digitalWrite(LED_PIN, blinkState);
     }
     
-    /*
     if (!printed) {
       Serial.print(control[0]);
       Serial.print("\t");
@@ -204,7 +202,6 @@ void loop() {
       Serial.println(control[3]);
       printed = true;  
     }
-    */
 }
 
 void check_radio(void) {
